@@ -248,13 +248,24 @@ module CarrierWave
     # [CarrierWave::ProcessingError] if manipulation failed.
     #
     def manipulate!
-      cache_stored_file! if !cached?
+      cache!(current_path) if !cached?
       image = ::MiniMagick::Image.open(current_path)
       image = yield(image)
       image.write(current_path)
       ::MiniMagick::Image.open(current_path)
     rescue ::MiniMagick::Error, ::MiniMagick::Invalid => e
       raise CarrierWave::ProcessingError, I18n.translate(:"errors.messages.mini_magick_processing_error", :e => e)
+    end
+
+    def current_path
+      @current_path ||= image(super).path
+    end
+
+    def image(path)
+      image    = ::MiniMagick::Image.open(path)
+      new_path = path.gsub(File.extname(path).gsub(".", ""), image.mime_type.split("/").last)
+      image.write(new_path)
+      ::MiniMagick::Image.open(new_path)
     end
 
   end # MiniMagick
